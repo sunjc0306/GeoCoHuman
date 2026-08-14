@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="BOFT: 基于蝴蝶分解的参数高效正交微调方法">
+  <meta name="keywords" content="Orthogonal finetuning, Butterfly factorization, Foundation models, Large language model, Text-to-image diffusion models">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parameter-Efficient Orthogonal Finetuning via Butterfly Factorization</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro" rel="stylesheet">
+
+  <!-- Bulma CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <!-- Bulma Carousel / Slider (可选) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-carousel@4.0.3/dist/css/bulma-carousel.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-slider@2.0.4/dist/css/bulma-slider.min.css">
+  <!-- Font Awesome 图标库 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Academicons 学术图标库 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+
+  <style>
+    /* 自定义样式，保持与 BOFT 页面风格一致 */
+    body {
+      font-family: 'Google Sans', 'Noto Sans', system-ui, -apple-system, sans-serif;
+      background: #fafafa;
+    }
+
+    .hero {
+      background: linear-gradient(145deg, #ffffff 0%, #f5f7fa 100%);
+      border-bottom: 1px solid #eaeef2;
+    }
+
+    .hero .title {
+      color: #1a1a2e;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .hero .subtitle {
+      color: #4a4a5a;
+      font-weight: 400;
+    }
+
+    .paper-actions .button {
+      margin: 0 0.3rem;
+      border-radius: 40px;
+      font-weight: 500;
+    }
+
+    .paper-actions .button i {
+      margin-right: 6px;
+    }
+
+    .section {
+      padding: 3rem 1.5rem;
+    }
+
+    .section h2 {
+      font-size: 1.6rem;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 1.2rem;
+      letter-spacing: -0.01em;
+    }
+
+    .section h2 i {
+      margin-right: 10px;
+      color: #2b5a8a;
+    }
+
+    .author-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1.2rem 2rem;
+      font-size: 1.05rem;
+    }
+
+    .author-list .author {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .author-list .author .affiliation-badge {
+      font-size: 0.7rem;
+      background: #eef2f7;
+      color: #3a4a5a;
+      padding: 0.1rem 0.6rem;
+      border-radius: 20px;
+      margin-left: 4px;
+      font-weight: 400;
+    }
+
+    .author-list .corresponding {
+      font-size: 0.85rem;
+      color: #5a6a7a;
+      margin-top: 0.5rem;
+      width: 100%;
+      text-align: center;
+    }
+
+    .teaser-image {
+      border-radius: 16px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+      background: #ffffff;
+      padding: 1rem;
+      border: 1px solid #eaeef2;
+    }
+
+    .teaser-image img {
+      border-radius: 12px;
+      width: 100%;
+      height: auto;
+    }
+
+    .abstract-box {
+      background: #f8fafc;
+      border-radius: 16px;
+      padding: 1.8rem 2rem;
+      border-left: 4px solid #2b5a8a;
+      font-size: 1.02rem;
+      line-height: 1.7;
+      color: #1e2a3a;
+    }
+
+    .result-figure {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 0.8rem;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+      border: 1px solid #eaeef2;
+      transition: transform 0.2s ease;
+    }
+
+    .result-figure:hover {
+      transform: translateY(-4px);
+    }
+
+    .result-figure img {
+      border-radius: 10px;
+      width: 100%;
+      height: auto;
+    }
+
+    .result-figure .caption {
+      padding: 0.6rem 0.2rem 0.2rem 0.2rem;
+      font-size: 0.9rem;
+      color: #4a5a6a;
+      text-align: center;
+    }
+
+    .citation-box {
+      background: #f0f3f8;
+      border-radius: 12px;
+      padding: 1.2rem 1.8rem;
+      font-family: 'Castoro', 'Noto Serif', serif;
+      font-size: 0.92rem;
+      border: 1px solid #dce2ea;
+      color: #1a2a3a;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .footer {
+      background: #ffffff;
+      border-top: 1px solid #eaeef2;
+      padding: 2rem 1.5rem;
+      color: #5a6a7a;
+      font-size: 0.9rem;
+    }
+
+    .footer a {
+      color: #2b5a8a;
+    }
+
+    .footer .icon-link {
+      font-size: 1.4rem;
+      margin: 0 0.4rem;
+      color: #4a5a6a;
+      transition: color 0.2s;
+    }
+
+    .footer .icon-link:hover {
+      color: #1a3a5c;
+    }
+
+    /* 响应式调整 */
+    @media screen and (max-width: 768px) {
+      .hero .title {
+        font-size: 2rem;
+      }
+      .author-list {
+        gap: 0.8rem 1.2rem;
+        font-size: 0.95rem;
+      }
+      .section {
+        padding: 2rem 0.8rem;
+      }
+      .abstract-box {
+        padding: 1.2rem 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============ HERO / 标题区 ============ -->
+  <section class="hero is-medium">
+    <div class="hero-body">
+      <div class="container has-text-centered">
+
+        <!-- 论文标题 -->
+        <h1 class="title is-1" style="font-size: 2.8rem;">
+          Parameter-Efficient Orthogonal Finetuning<br>
+          <span style="font-weight: 300; color: #2b5a8a;">via Butterfly Factorization</span>
+        </h1>
+
+        <!-- 副标题 / 简称 -->
+        <p class="subtitle is-4" style="margin-top: 0.5rem; color: #5a6a7a;">
+          <span class="tag is-light is-medium" style="background: #e8edf4; color: #1a3a5c; border-radius: 40px; padding: 0.3rem 1.2rem;">
+            <i class="fas fa-butterfly" style="margin-right: 6px;"></i> BOFT
+          </span>
+          &nbsp;·&nbsp; <span style="font-weight: 300;">ICLR 2024</span>
+        </p>
+
+        <!-- 作者列表 -->
+        <div class="author-list" style="margin-top: 1.8rem;">
+          <span class="author">
+            作者一
+            <span class="affiliation-badge">University A</span>
+          </span>
+          <span class="author">
+            作者二
+            <span class="affiliation-badge">University B</span>
+          </span>
+          <span class="author">
+            作者三<sup>*</sup>
+            <span class="affiliation-badge">University C</span>
+          </span>
+          <span class="author">
+            作者四
+            <span class="affiliation-badge">University A</span>
+          </span>
+          <span class="author">
+            作者五
+            <span class="affiliation-badge">Industry Lab</span>
+          </span>
+          <div class="corresponding">
+            <sup>*</sup> 通讯作者 &nbsp;·&nbsp; <i class="far fa-envelope"></i> corresponding@example.edu
+          </div>
+        </div>
+
+        <!-- 操作按钮组 (PDF / Code / 数据集等) -->
+        <div class="paper-actions" style="margin-top: 2.2rem;">
+          <a class="button is-dark is-medium" href="#">
+            <i class="fas fa-file-pdf"></i> Paper
+          </a>
+          <a class="button is-dark is-medium" href="#">
+            <i class="fab fa-github"></i> Code
+          </a>
+          <a class="button is-dark is-medium" href="#">
+            <i class="fas fa-database"></i> Data
+          </a>
+          <a class="button is-dark is-medium" href="#">
+            <i class="ai ai-arxiv"></i> arXiv
+          </a>
+          <a class="button is-dark is-medium" href="#">
+            <i class="fab fa-youtube"></i> Video
+          </a>
+        </div>
+
+        <!-- 补充链接 (可选) -->
+        <p style="margin-top: 1rem; font-size: 0.9rem; color: #6a7a8a;">
+          <i class="fas fa-calendar-alt"></i> 2026年8月14日 更新 &nbsp;·&nbsp;
+          <i class="fas fa-code-branch"></i> v2.0
+        </p>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TEASER / 主图 ============ -->
+  <section class="section" style="padding-top: 0;">
+    <div class="container">
+      <div class="columns is-centered">
+        <div class="column is-10">
+          <div class="teaser-image">
+            <img src="https://via.placeholder.com/1200x480/2b5a8a/ffffff?text=BOFT+Teaser+Figure" alt="BOFT Teaser Figure">
+            <p style="text-align: center; margin-top: 0.6rem; color: #5a6a7a; font-size: 0.95rem;">
+              <i class="fas fa-image"></i> 图1：BOFT 方法概览 —— 通过蝴蝶分解实现参数高效的正交微调
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ABSTRACT / 摘要 ============ -->
+  <section class="section">
+    <div class="container">
+      <h2><i class="fas fa-align-left"></i> 摘要</h2>
+      <div class="abstract-box">
+        <p>
+          大规模预训练模型（如大语言模型和文本到图像扩散模型）在各类下游任务中展现出卓越的性能。
+          然而，全参数微调的成本极高，而现有的参数高效微调方法（如 LoRA）在性能上仍与全量微调存在差距。
+        </p>
+        <p style="margin-top: 0.8rem;">
+          本文提出了一种名为 <strong>BOFT</strong>（Butterfly Orthogonal Finetuning）的新方法，
+          通过<strong>蝴蝶分解</strong>（Butterfly Factorization）来参数化正交矩阵，
+          从而实现<strong>参数高效的正交微调</strong>。
+          与 LoRA 等低秩方法不同，BOFT 能够更好地保持预训练模型的表示能力，
+          同时在多个基准测试中取得了与全量微调相当甚至更优的性能。
+        </p>
+        <p style="margin-top: 0.8rem;">
+          我们在 <strong>大语言模型</strong>（LLaMA、GPT）和 <strong>扩散模型</strong>（Stable Diffusion）上进行了广泛的实验，
+          结果表明 BOFT 在 <strong>参数量减少 90%</strong> 的情况下，
+          仍然能够达到与全量微调接近的准确率和生成质量。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RESULTS / 实验结果 ============ -->
+  <section class="section" style="background: #f8fafc;">
+    <div class="container">
+      <h2><i class="fas fa-chart-bar"></i> 实验结果</h2>
+
+      <div class="columns is-multiline is-centered">
+
+        <!-- 结果图 1 -->
+        <div class="column is-4">
+          <div class="result-figure">
+            <img src="https://via.placeholder.com/400x300/1a3a5c/ffffff?text=LLM+Benchmark" alt="LLM Benchmark">
+            <div class="caption">
+              <strong>图2：</strong> 大语言模型任务上的性能对比
+              <span style="display: block; font-size: 0.8rem; color: #6a7a8a;">BOFT 在 5/6 个任务上超越 LoRA</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 结果图 2 -->
+        <div class="column is-4">
+          <div class="result-figure">
+            <img src="https://via.placeholder.com/400x300/2b5a8a/ffffff?text=Diffusion+Results" alt="Diffusion Results">
+            <div class="caption">
+              <strong>图3：</strong> 文本到图像生成质量对比
+              <span style="display: block; font-size: 0.8rem; color: #6a7a8a;">FID ↓ 12.3 vs. LoRA 14.7</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 结果图 3 -->
+        <div class="column is-4">
+          <div class="result-figure">
+            <img src="https://via.placeholder.com/400x300/3a6a8a/ffffff?text=Ablation+Study" alt="Ablation Study">
+            <div class="caption">
+              <strong>图4：</strong> 消融实验 —— 蝴蝶分解的秩与性能关系
+              <span style="display: block; font-size: 0.8rem; color: #6a7a8a;">秩 r=8 时达到最佳平衡</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 更多结果链接 -->
+      <div class="has-text-centered" style="margin-top: 1.5rem;">
+        <a class="button is-light" href="#">
+          <i class="fas fa-chevron-circle-right"></i> 查看完整实验结果
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CITATION / 引用 ============ -->
+  <section class="section">
+    <div class="container">
+      <h2><i class="fas fa-quote-right"></i> 引用</h2>
+      <div class="citation-box">
+        @inproceedings{boft2024,<br>
+        &nbsp;&nbsp;title={Parameter-Efficient Orthogonal Finetuning via Butterfly Factorization},<br>
+        &nbsp;&nbsp;author={第一作者, 第二作者, 第三作者 and 第四作者},<br>
+        &nbsp;&nbsp;booktitle={International Conference on Learning Representations (ICLR)},<br>
+        &nbsp;&nbsp;year={2024},<br>
+        &nbsp;&nbsp;url={https://boft.wyliu.com/}<br>
+        }
+      </div>
+      <p style="margin-top: 0.8rem; font-size: 0.9rem; color: #5a6a7a;">
+        <i class="fas fa-info-circle"></i> 如果您使用了本工作，请按以上格式引用。
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER / 页脚 ============ -->
+  <footer class="footer">
+    <div class="container has-text-centered">
+
+      <!-- 社交/学术链接 -->
+      <div style="margin-bottom: 1rem;">
+        <a class="icon-link" href="#" title="GitHub"><i class="fab fa-github"></i></a>
+        <a class="icon-link" href="#" title="arXiv"><i class="ai ai-arxiv"></i></a>
+        <a class="icon-link" href="#" title="Twitter"><i class="fab fa-twitter"></i></a>
+        <a class="icon-link" href="#" title="YouTube"><i class="fab fa-youtube"></i></a>
+        <a class="icon-link" href="#" title="Google Scholar"><i class="ai ai-google-scholar"></i></a>
+      </div>
+
+      <p>
+        <span style="opacity: 0.6;">&copy; 2026 BOFT Authors &nbsp;·&nbsp; </span>
+        <span style="opacity: 0.6;">
+          基于 <a href="https://bulma.io/" target="_blank">Bulma</a> 构建 &nbsp;·&nbsp;
+          源码 <a href="#" target="_blank"><i class="fab fa-github"></i> GitHub</a>
+        </span>
+      </p>
+      <p style="margin-top: 0.4rem; font-size: 0.8rem; opacity: 0.5;">
+        页面设计参照 <a href="https://boft.wyliu.com/" target="_blank">BOFT 官方主页</a>
+      </p>
+    </div>
+  </footer>
+
+  <!-- Bulma Carousel / Slider JS (可选) -->
+  <script src="https://cdn.jsdelivr.net/npm/bulma-carousel@4.0.3/dist/js/bulma-carousel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bulma-slider@2.0.4/dist/js/bulma-slider.min.js"></script>
+</body>
+</html>
